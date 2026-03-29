@@ -1,0 +1,8 @@
+[package]
+name = "spyland-backend-niri"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+niri-ipc = "25.11.0"
+spyland-core = { version = "0.1.0", path = "../core" }
