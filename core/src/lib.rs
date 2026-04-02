@@ -88,8 +88,8 @@ impl<C: Clock> SessionManager<C> {
         let now = self.clock.now();
 
         if !self.current.is_empty() {
-            self.current.utc_end = now;
-            self.sessions.push(self.current.clone());
+            self.update();
+            self.flush();
         }
 
         self.current = Session::new_empty();
