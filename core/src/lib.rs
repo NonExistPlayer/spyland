@@ -197,6 +197,6 @@ pub enum Event {
 }
 
 pub trait Backend {
-    fn is_available() -> bool;
+    fn is_available(&self) -> bool;
     fn subscribe(&mut self) -> Receiver<Event>;
 }

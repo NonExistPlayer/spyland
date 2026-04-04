@@ -13,7 +13,7 @@ use std::thread;
 pub struct NiriBackend;
 
 impl Backend for NiriBackend {
-    fn is_available() -> bool {
+    fn is_available(&self) -> bool {
         Socket::connect().is_ok()
     }
 
