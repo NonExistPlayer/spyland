@@ -6,17 +6,18 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use anyhow::{Context, Result};
 use log::info;
 
 use spyland_backend_niri::NiriBackend;
 use spyland_core::{Backend, Clock, SessionManager};
 
-fn main() {
+fn main() -> Result<()> {
     env_logger::init();
 
     info!("Starting spyland daemon...");
 
-    let mut backend = new_backend().expect("no backend is available");
+    let mut backend = new_backend().context("No backend is available")?;
     let receiver = backend.subscribe();
     let system_clock = SystemClock {};
     let mut session_manager = SessionManager::new(system_clock);
@@ -25,6 +26,8 @@ fn main() {
         println!("{:?}", event);
         session_manager.handle_event(event);
     }
+
+    Ok(())
 }
 
 struct SystemClock;
