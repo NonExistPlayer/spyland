@@ -39,6 +39,16 @@ pub struct SessionManager<C: Clock> {
 
 pub const SESSION_MANAGER_FLUSH_INTERVAL: u64 = 15;
 
+pub enum Response {
+    Handled,
+
+    SessionCreated,
+    SessionUpdated,
+    SessionIdled(bool),
+
+    Flush,
+}
+
 impl<C: Clock> SessionManager<C> {
     pub fn new(clock: C) -> Self {
         Self {
@@ -51,7 +61,7 @@ impl<C: Clock> SessionManager<C> {
         }
     }
 
-    pub fn handle_event(&mut self, event: Event) {
+    pub fn handle_event(&mut self, event: Event) -> Response {
         match event {
             Event::ActiveWindowChanged(a) => {
                 self.new_session();
@@ -62,15 +72,19 @@ impl<C: Clock> SessionManager<C> {
                         workspace: self.workspace,
                     },
                     None => State::Idle,
-                }
+                };
+
+                Response::SessionCreated
             }
             Event::WorkspaceChanged(id) => {
                 self.workspace = Some(id);
+
+                Response::Handled
             }
             Event::Idle(idle) => {
                 if idle {
                     if self.current.state == State::Idle {
-                        return;
+                        return Response::Handled;
                     }
 
                     if !self.current.is_empty() {
@@ -86,7 +100,7 @@ impl<C: Clock> SessionManager<C> {
                     self.update();
                 } else {
                     if self.current.state != State::Idle {
-                        return;
+                        return Response::Handled;
                     }
 
                     self.new_session();
@@ -96,6 +110,8 @@ impl<C: Clock> SessionManager<C> {
                     self.current.utc_start = now;
                     self.current.utc_end = now;
                 }
+
+                Response::SessionIdled(idle)
             }
             Event::Tick => {
                 let now = self.clock.now();
@@ -106,7 +122,11 @@ impl<C: Clock> SessionManager<C> {
                     self.flush();
 
                     self.last_flush = now;
+
+                    return Response::Flush;
                 }
+
+                Response::Handled
             }
         }
     }
