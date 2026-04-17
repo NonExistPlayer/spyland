@@ -1299,7 +1299,7 @@ name = "spyland-core"
 version = "0.1.0"
 
 [[package]]
-name = "spyland-ipc"
+name = "spyland-lib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
