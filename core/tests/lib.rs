@@ -1,7 +1,8 @@
 /*
- *  spyland — screen time for Wayland
+ *  spyland-core — session tracking engine
+ *  part of the spyland project
  *  Copyright (C) 2026 Ilya Korobov (NonExistPlayer)
- *  Licensed under the GNU General Public License v3.0
+ *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 use spyland_core::Event;
