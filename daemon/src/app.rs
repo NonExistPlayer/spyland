@@ -12,20 +12,27 @@ use std::{
 
 use spyland_backend_niri::NiriBackend;
 use spyland_core::{Backend, Clock, Event, Response, SessionManager};
+use spyland_lib::{
+    db::Db,
+    ipc::{
+        IpcConnection, IpcServer,
+        protocol::{Request as IpcRequest, Response as IpcResponse},
+    },
+};
 
 use anyhow::{Context, Result};
+use log::trace;
 use tokio::time::interval;
-
-use spyland_lib::db::Db;
 
 pub struct App<C: Clock> {
     receiver: Receiver<Event>,
     session_manager: Arc<Mutex<SessionManager<C>>>,
     db: Db,
+    server: IpcServer,
 }
 
 impl<C: Clock> App<C> {
-    pub async fn new(db: Db, clock: C) -> Result<Self> {
+    pub async fn new(db: Db, server: IpcServer, clock: C) -> Result<Self> {
         let mut backend = new_backend().context("No backend is available")?;
 
         db.create().await.context("Failed to create database")?;
@@ -33,6 +40,7 @@ impl<C: Clock> App<C> {
         Ok(Self {
             receiver: backend.subscribe(),
             session_manager: Arc::new(Mutex::new(SessionManager::new(clock))),
+            server,
             db,
         })
     }
@@ -42,9 +50,7 @@ impl<C: Clock + Send + 'static> App<C> {
     pub async fn run(self) -> Result<()> {
         let sm = self.session_manager.clone();
         let rx = self.receiver;
-        let event_task = tokio::task::spawn_blocking(move || {
-            Self::event_handler(sm, rx);
-        });
+        let event_task = tokio::task::spawn_blocking(move || Self::event_handler(sm, rx));
 
         let sm = self.session_manager.clone();
         let db = self.db;
@@ -52,20 +58,26 @@ impl<C: Clock + Send + 'static> App<C> {
             Self::tick_handler(sm, db).await;
         });
 
-        tokio::try_join!(event_task, tick_task)?;
+        // let sm = self.session_manager.clone();
+        let sv = self.server;
+        let ipc_task = tokio::task::spawn_blocking(move || Self::ipc_server(sv));
+        tokio::try_join!(event_task, tick_task, ipc_task)?;
 
         Ok(())
     }
 
     fn event_handler(session_manager: Arc<Mutex<SessionManager<C>>>, receiver: Receiver<Event>) {
+        trace!("event_handler()");
         for event in receiver {
+            trace!("Event received: {event:?}");
             session_manager.lock().unwrap().handle_event(event);
         }
     }
 
     async fn tick_handler(session_manager: Arc<Mutex<SessionManager<C>>>, database: Db) {
-        let mut timer = interval(Duration::from_secs(1));
+        trace!("tick_handler()");
 
+        let mut timer = interval(Duration::from_secs(1));
         loop {
             timer.tick().await;
             let mut sm_lock = session_manager.lock().unwrap();
@@ -79,6 +91,28 @@ impl<C: Clock + Send + 'static> App<C> {
                     .await
                     .expect("Write to database failed");
             }
+        }
+    }
+
+    fn ipc_server(mut server: IpcServer) {
+        trace!("ipc_server()");
+
+        loop {
+            let conn = server.accept().expect("Accept new connection failed");
+
+            tokio::task::spawn_blocking(move || {
+                Self::connection_handler(conn);
+            });
+        }
+    }
+
+    fn connection_handler(conn: IpcConnection) {
+        while let Ok(request) = conn.read() {
+            let response = match request {
+                IpcRequest::Ping => IpcResponse::Pong,
+            };
+
+            conn.send(response).expect("Failed to send response");
         }
     }
 }
