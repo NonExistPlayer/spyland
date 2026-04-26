@@ -48,6 +48,7 @@ async fn sessions() -> Result<()> {
     use spyland_core::{Session, State};
     use spyland_lib::db::Db;
     use spyland_lib::path::get_database_path;
+    use time::{OffsetDateTime, format_description};
 
     let db = Db::open_readonly(get_database_path()?).await?;
 
@@ -58,9 +59,36 @@ async fn sessions() -> Result<()> {
         .map(Session::from)
         .collect();
 
+    let mut old_start = 0;
+
     for session in sessions {
         println!("|\n|");
-        print!("@--- {}s: ", session.utc_end - session.utc_start);
+
+        let dt = OffsetDateTime::from_unix_timestamp(session.utc_start as i64)?;
+
+        {
+            let odt = OffsetDateTime::from_unix_timestamp(old_start)?;
+
+            if dt.month() != odt.month() || dt.day() != odt.day() {
+                println!("#    {}", {
+                    let format = format_description::parse(
+                        "[weekday repr:short], [day] [month repr:long] [year]",
+                    )?;
+
+                    dt.format(&format)?
+                });
+                println!("|\n|");
+            }
+        }
+
+        print!(
+            "@--- ({}) {}s: ",
+            {
+                let format = format_description::parse("[hour]:[minute]")?;
+                dt.format(&format)?
+            },
+            session.utc_end - session.utc_start
+        );
 
         match &session.state {
             State::Active { app_id, workspace } => {
@@ -75,6 +103,8 @@ async fn sessions() -> Result<()> {
             }
             State::Empty => unreachable!(),
         }
+
+        old_start = session.utc_start as i64;
     }
 
     Ok(())
