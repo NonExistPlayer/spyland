@@ -8,7 +8,10 @@
 use anyhow::Result;
 use log::info;
 use spyland_core::Clock;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    fs,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::app::App;
 use spyland_lib::{db::Db, ipc::IpcServer, path};
@@ -24,6 +27,7 @@ async fn main() -> Result<()> {
     let app = App::new(
         Db::open(path::ensure_database_path()?, true).await?,
         IpcServer::new(path::ensure_socket_path()?.into())?,
+        &fs::read_to_string(path::ensure_config_path()?)?,
         SystemClock {},
     )
     .await?;

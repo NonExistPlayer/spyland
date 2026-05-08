@@ -18,7 +18,6 @@ use spyland_lib::{
         IpcConnection, IpcServer,
         protocol::{Request as IpcRequest, Response as IpcResponse},
     },
-    path::ensure_config_path,
 };
 
 use anyhow::{Context, Result};
@@ -33,9 +32,8 @@ pub struct App<C: Clock> {
 }
 
 impl<C: Clock> App<C> {
-    pub async fn new(db: Db, server: IpcServer, clock: C) -> Result<Self> {
-        let text = std::fs::read_to_string(ensure_config_path()?)?;
-        let toml: toml::Value = toml::from_str(&text)?;
+    pub async fn new(db: Db, server: IpcServer, config: &str, clock: C) -> Result<Self> {
+        let toml: toml::Value = toml::from_str(&config)?;
 
         let mut sm = SessionManager::new(clock);
         let config: CoreConfig = match toml.get("core") {
