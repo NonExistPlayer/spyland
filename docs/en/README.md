@@ -23,7 +23,7 @@ The project includes a Unix daemon, CLI application, and a public API library.
 
 ### From Source
 
-Requres Rust (latest stable version). Install via `cargo`:
+Requires Rust (latest stable version). Install via `cargo`:
 
 ```bash
 git clone https://github.com/NonExistPlayer/spyland
