@@ -63,8 +63,8 @@ cargo install --path ./cli
 - [ ] **Database encryption**: Protect user data
 - [ ] **Gtk application**
 - [ ] **Database integrity checks**: Validate data on load
-- [ ] **Extended OS support**
 - [ ] **Activities**: Grouping sessions (work, entertainment, study)
+- [ ] **Extended OS support**
   - [ ] Windows
   - [ ] Android
     - [ ] Backend
