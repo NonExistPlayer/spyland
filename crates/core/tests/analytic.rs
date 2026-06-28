@@ -25,6 +25,10 @@ fn analytic_test() {
     d.advance(12);
     d.flush();
 
+    d.event(Event::ActiveWindowChanged(None));
+    d.advance(12);
+    d.flush();
+
     d.event(Event::ActiveWindowChanged(Some(
         "org.telegram.desktop".into(),
     )));
